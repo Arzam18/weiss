@@ -120,7 +120,13 @@ void InitTT() {
 
 #if defined(__linux__)
     // Align on 2MB boundaries and request Huge Pages
+#if defined(__ANDROID__)
+    // Android API levels below 28 do not expose aligned_alloc().
+    if (posix_memalign(&TT.mem, 2 * 1024 * 1024, bytes) != 0)
+        TT.mem = NULL;
+#else
     TT.mem = aligned_alloc(2 * 1024 * 1024, bytes);
+#endif
     TT.table = (TTBucket *)TT.mem;
     madvise(TT.table, bytes, MADV_HUGEPAGE);
 #else

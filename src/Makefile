@@ -52,12 +52,15 @@ ifeq ($(ANDROID),1)
     PROPS =
 endif
 
-# Use pext if supported and not a ryzen 1/2 cpu
-PROPS = $(shell echo | $(CC) -march=native -E -dM -)
-ifneq ($(findstring __BMI2__, $(PROPS)),)
-	ifeq ($(findstring __znver1, $(PROPS)),)
-		ifeq ($(findstring __znver2, $(PROPS)),)
-			CFLAGS += -DUSE_PEXT
+# Use pext if supported and not a ryzen 1/2 cpu. This is an x86-only
+# host-CPU detection step; do not run it with the Android cross-compiler.
+ifneq ($(ANDROID),1)
+	PROPS = $(shell echo | $(CC) -march=native -E -dM -)
+	ifneq ($(findstring __BMI2__, $(PROPS)),)
+		ifeq ($(findstring __znver1, $(PROPS)),)
+			ifeq ($(findstring __znver2, $(PROPS)),)
+				CFLAGS += -DUSE_PEXT
+			endif
 		endif
 	endif
 endif
