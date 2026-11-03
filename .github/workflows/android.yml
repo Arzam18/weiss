@@ -1,0 +1,56 @@
+name: Build Android ARM64 (NEON)
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-android-arm64:
+    name: Build Weiss for Android ARM64
+    runs-on: ubuntu-latest
+    env:
+      ANDROID_NDK_VERSION: 27.2.12479018
+      ANDROID_API_LEVEL: 24
+    defaults:
+      run:
+        working-directory: src
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          packages: platform-tools
+
+      - name: Install Android NDK
+        run: sdkmanager --install "ndk;${ANDROID_NDK_VERSION}"
+
+      - name: Configure Android NDK compiler
+        shell: bash
+        run: |
+          NDK_BIN="${ANDROID_HOME}/ndk/${ANDROID_NDK_VERSION}/toolchains/llvm/prebuilt/linux-x86_64/bin"
+          test -x "${NDK_BIN}/aarch64-linux-android${ANDROID_API_LEVEL}-clang"
+          echo "ANDROID_CC=${NDK_BIN}/aarch64-linux-android${ANDROID_API_LEVEL}-clang" >> "${GITHUB_ENV}"
+
+      - name: Build Weiss (ARM64 + NEON)
+        run: make ANDROID=1 CC="${ANDROID_CC}" basic
+
+      - name: Stage Android engine
+        shell: bash
+        run: |
+          mkdir -p ../release
+          cp weiss ../release/weiss-arm64-android-neon
+          file ../release/weiss-arm64-android-neon
+
+      - name: Upload Android ARM64 engine
+        uses: actions/upload-artifact@v4
+        with:
+          name: Weiss-Android-ARM64-NEON
+          path: release/weiss-arm64-android-neon
+          if-no-files-found: error
