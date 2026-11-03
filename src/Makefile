@@ -43,6 +43,15 @@ FLAGS  = $(STD) $(WARN) -O3 -flto=auto
 CFLAGS = $(FLAGS) -march=native $(GIT_HEAD_COMMIT_ID_DEF)
 RFLAGS = $(FLAGS) -static
 
+# Android ARM64 cross-compilation. Set ANDROID=1 and pass the NDK clang
+# wrapper as CC. AArch64 mandates Advanced SIMD (NEON), so do not enable
+# x86-only POPCNT/PEXT flags or native-host CPU detection in this mode.
+ifeq ($(ANDROID),1)
+    CFLAGS = $(STD) $(WARN) -O3 -march=armv8-a+simd $(GIT_HEAD_COMMIT_ID_DEF)
+    RFLAGS = $(CFLAGS) -fPIE -pie
+    PROPS =
+endif
+
 # Use pext if supported and not a ryzen 1/2 cpu
 PROPS = $(shell echo | $(CC) -march=native -E -dM -)
 ifneq ($(findstring __BMI2__, $(PROPS)),)
